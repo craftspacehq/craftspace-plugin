@@ -57,10 +57,13 @@ async function mcp(method, params) {
 }
 
 // Poll search_pages until a record carrying the nonce shows up (writes are effectively immediate).
+// A hit line looks like `- <title> [pg_…] (<space>): …`; the "No pages matched \"<nonce>\"" reply
+// also contains the nonce, so require an actual `[pg_` hit — not just the nonce in the text.
 async function recorded(nonceStr) {
   for (let i = 0; i < 4; i++) {
     const out = await mcp('tools/call', { name: 'search_pages', arguments: { query: nonceStr } })
-    if ((out.result?.content?.[0]?.text ?? '').includes(nonceStr)) return true
+    const text = out.result?.content?.[0]?.text ?? ''
+    if (text.includes(nonceStr) && text.includes('[pg_')) return true
     await new Promise((r) => setTimeout(r, 1500))
   }
   return false
@@ -88,13 +91,13 @@ function runClaude(prompt, dir) {
   )
 }
 
-// --- Codex: token MCP in a throwaway CODEX_HOME. Rides the MCP nudge (complies without hooks).
+// --- Codex: token MCP in a throwaway CODEX_HOME. `codex exec` does not fire hooks (only the
+// interactive TUI/desktop does), so this exercises the MCP nudge — which is why the harness only
+// asserts decisions for Codex. stdio stdin='ignore' so exec doesn't block reading an open pipe.
 function runCodex(prompt, dir) {
   const ch = join(dir, 'codexhome')
   mkdirSync(join(ch, 'sessions'), { recursive: true })
-  const realAuth = join(homedir(), '.codex', 'auth.json')
-  if (existsSync(realAuth)) copyFileSync(realAuth, join(ch, 'auth.json'))
-  for (const f of ['models_cache.json', 'version.json']) {
+  for (const f of ['auth.json', 'models_cache.json', 'version.json']) {
     const p = join(homedir(), '.codex', f)
     if (existsSync(p)) copyFileSync(p, join(ch, f))
   }
@@ -106,13 +109,21 @@ function runCodex(prompt, dir) {
     cwd: dir,
     encoding: 'utf8',
     timeout: 300_000,
+    stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, CODEX_HOME: ch },
   })
 }
 
+const PROMPTS = { decision: decisionPrompt, page: pagePrompt }
+
+// What each headless mode can actually be tested for:
+//  - Claude Code `-p` fires the Stop hook, so write-back is FORCED — test decision and page.
+//  - `codex exec` does NOT fire hooks (only interactive Codex does), so it rides the MCP nudge alone.
+//    The nudge reliably lands decisions; page/gotcha write-back needs the interactive Stop hook, which
+//    exec can't exercise — so we only assert decisions for Codex here (see setups/README.md).
 const SETUPS = [
-  { id: 'claude', label: 'Claude Code', available: onPath('claude'), run: runClaude },
-  { id: 'codex', label: 'Codex', available: onPath('codex'), run: runCodex },
+  { id: 'claude', label: 'Claude Code', available: onPath('claude'), run: runClaude, tests: ['decision', 'page'] },
+  { id: 'codex', label: 'Codex', available: onPath('codex'), run: runCodex, tests: ['decision'] },
 ].filter((s) => (only ? s.id === only : true))
 
 const results = []
@@ -122,10 +133,8 @@ for (const setup of SETUPS) {
     continue
   }
   for (let round = 0; round < repeat; round++) {
-    for (const [kind, makePrompt] of [
-      ['decision', decisionPrompt],
-      ['page', pagePrompt],
-    ]) {
+    for (const kind of setup.tests) {
+      const makePrompt = PROMPTS[kind]
       const n = nonce()
       const dir = mkdtempSync(join(tmpdir(), `craftspace-setuptest-${setup.id}-`))
       process.stdout.write(`- ${setup.label} / ${kind} (${n})… `)

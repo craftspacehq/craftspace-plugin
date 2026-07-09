@@ -24,15 +24,21 @@ make sure it happens (ADR 0047).
 
 | Client | MCP | Forcing hooks | Verified here |
 |---|---|---|---|
-| **Claude Code** | plugin bundles it (OAuth) | plugin's `Stop` + `SessionStart` | ✅ headless test + live e2e |
-| **Codex** | `codex/config.example.toml` (OAuth or token) | `codex/hooks.json` → shared scripts | ✅ writes via MCP nudge (headless); hooks are the same proven format Codex already runs for other memory tools |
+| **Claude Code** | plugin bundles it (OAuth) | plugin's `Stop` + `SessionStart`, and they **fire under `claude -p`** | ✅ decision + page forced, headless + live e2e |
+| **Codex** | `codex/config.example.toml` (OAuth or token) | `codex/hooks.json` → shared scripts, **interactive only** | ✅ decision via nudge (headless). ⚠️ `codex exec` does **not** fire hooks, so headless page/gotcha write-back isn't forced; the interactive TUI/desktop fires the hooks (same format Codex already runs for other memory tools) |
 | **Cursor** | `cursor/mcp.json` | `cursor/hooks.json` → shared scripts | ⚠️ config provided, **not** run — Cursor is GUI-only, no headless CLI |
 | **Claude.ai / Desktop** | custom connector (OAuth) | none — no hook surface | relies on the MCP nudge only |
 
+**The key asymmetry:** Claude Code's `-p` (print) mode fires hooks, so write-back is *forced* even
+headless. `codex exec` does *not* fire hooks (only interactive Codex does), so headless Codex leans on
+the MCP nudge — which lands decisions reliably but not always a page/gotcha. In real interactive use,
+every hook-capable client forces both.
+
 - **Claude Code**: `claude plugin marketplace add abuaboud/craftspace-plugin && claude plugin install craftspace@craftspace`. The plugin is the packaged version of these same two hooks plus the MCP.
 - **Codex**: merge `codex/config.example.toml` into `~/.codex/config.toml` and `codex/hooks.json` into
-  `~/.codex/hooks.json` (replace the path placeholder). Codex complied even without the hooks in
-  testing, but the hooks make it deterministic.
+  `~/.codex/hooks.json` (replace the path placeholder). The hooks fire in the interactive TUI/desktop
+  (not in `codex exec`), where they force the write-back the same way the plugin does for Claude Code.
+  Even without them, Codex records decisions on the MCP nudge.
 - **Cursor**: drop `cursor/mcp.json` and `cursor/hooks.json` into `~/.cursor/`. Unverified.
 - **Claude.ai / Desktop**: add the custom connector; there is no client hook surface, so write-back
   rides the server nudge alone.
