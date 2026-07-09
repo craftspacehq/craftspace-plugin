@@ -1,0 +1,19 @@
+{
+  "_comment": "Codex hooks for Craftspace write-back. Merge into ~/.codex/hooks.json (or a project .codex/hooks.json). Replace ABSOLUTE_PATH_TO_REPO with the absolute path to your checkout of this repo. The `hooks` feature is stable/on by default in Codex; the first run in a new location will ask you to trust these hooks.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node ABSOLUTE_PATH_TO_REPO/setups/hooks/session-start.mjs", "timeout": 10 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node ABSOLUTE_PATH_TO_REPO/setups/hooks/stop.mjs", "timeout": 15 }
+        ]
+      }
+    ]
+  }
+}

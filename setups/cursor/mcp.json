@@ -1,0 +1,11 @@
+{
+  "_comment": "Craftspace MCP for Cursor. Put this at ~/.cursor/mcp.json (global) or <project>/.cursor/mcp.json. Cursor supports remote HTTP MCP with headers and ${env:VAR} interpolation. For humans, OAuth on first connect is simplest (drop the headers block and sign in when prompted); the token form below suits headless use. Set CRAFTSPACE_TOKEN to a cst_… member token.",
+  "mcpServers": {
+    "craftspace": {
+      "url": "https://craftspace.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${env:CRAFTSPACE_TOKEN}"
+      }
+    }
+  }
+}

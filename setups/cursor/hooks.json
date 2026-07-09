@@ -1,0 +1,12 @@
+{
+  "_comment": "Cursor hooks for Craftspace write-back. Put at ~/.cursor/hooks.json or <project>/.cursor/hooks.json. Replace ABSOLUTE_PATH_TO_REPO with your checkout path. Cursor uses lowercase event names (sessionStart, stop) and, like Claude Code and Codex, treats a non-zero (exit 2) hook with a stderr reason as a block/continue signal. NOTE: unverified — Cursor is a GUI app with no headless CLI, so this config could not be run in the test harness. The shared stop hook fails open, so worst case it is a no-op rather than a blocker.",
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      { "command": "node ABSOLUTE_PATH_TO_REPO/setups/hooks/session-start.mjs", "timeout": 10 }
+    ],
+    "stop": [
+      { "command": "node ABSOLUTE_PATH_TO_REPO/setups/hooks/stop.mjs", "timeout": 15 }
+    ]
+  }
+}

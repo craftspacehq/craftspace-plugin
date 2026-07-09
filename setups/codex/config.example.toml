@@ -1,0 +1,14 @@
+# Craftspace MCP for Codex — merge into ~/.codex/config.toml (or a project .codex/config.toml).
+#
+# Codex CLI speaks HTTP MCP with header auth. Two ways to authenticate:
+#   (a) OAuth, interactive:  run `codex mcp login craftspace` after adding the url below.
+#   (b) Member token:        put a cst_… token (minted in the Craftspace web app) in http_headers.
+#
+# Forcing the write-back is a separate step: add the hooks from setups/codex/hooks.json.
+
+[mcp_servers.craftspace]
+url = "https://craftspace.app/mcp"
+
+# Option (b): token auth. Prefer OAuth for humans; use a token for headless / CI.
+[mcp_servers.craftspace.http_headers]
+Authorization = "Bearer cst_REPLACE_WITH_YOUR_MEMBER_TOKEN"
