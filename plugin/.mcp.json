@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "craftspace": {
+      "type": "http",
+      "url": "https://craftspace.app/mcp"
+    }
+  }
+}

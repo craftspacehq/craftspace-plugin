@@ -1,0 +1,7 @@
+{
+  "name": "craftspace",
+  "description": "Connects Claude Code to your team's Craftspace company brain and makes sure decisions and learnings actually get written back — a SessionStart hook primes the read-first / write-back rules, and a Stop hook nudges you to record a decision or page before a substantive session ends.",
+  "version": "0.1.0",
+  "homepage": "https://craftspace.app",
+  "author": { "name": "Craftspace", "url": "https://craftspace.app" }
+}
