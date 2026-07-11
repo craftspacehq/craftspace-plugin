@@ -20,6 +20,16 @@ The hooks only *read* the transcript to decide whether to nudge — the agent st
 record by calling the MCP tool itself, so capture stays agent-driven (ADR 0041), and the hooks just
 make sure it happens (ADR 0047).
 
+3. **Native rules file** (`cursor/rules/craftspace.mdc`, `codex/AGENTS.md`) — a client's own
+   always-on context file. This carries one specific pointer: *before acting on how this company does
+   things, call `list_skills` and follow the matching skill.* A benchmark showed a bare MCP
+   connection pulls the right skill only ~1/3 of the time (agents look only when a task obviously
+   smells like company policy); with this pointer present it is reliable. The rules file is more
+   robust than the SessionStart hook for this — it does not depend on the hook firing (Cursor's hook
+   is GUI-only/unverified, and `codex exec` skips hooks), and it never goes stale because it tells the
+   agent to call `list_skills` rather than materializing a skill list. Claude Code already gets this
+   pointer from the plugin's SessionStart hook, so no rules file is needed there.
+
 ## Per client
 
 | Client | MCP | Forcing hooks | Verified here |
@@ -38,8 +48,12 @@ every hook-capable client forces both.
 - **Codex**: merge `codex/config.example.toml` into `~/.codex/config.toml` and `codex/hooks.json` into
   `~/.codex/hooks.json` (replace the path placeholder). The hooks fire in the interactive TUI/desktop
   (not in `codex exec`), where they force the write-back the same way the plugin does for Claude Code.
-  Even without them, Codex records decisions on the MCP nudge.
-- **Cursor**: drop `cursor/mcp.json` and `cursor/hooks.json` into `~/.cursor/`. Unverified.
+  Even without them, Codex records decisions on the MCP nudge. Also merge `codex/AGENTS.md` into your
+  `AGENTS.md` so the skills pointer is present even in `codex exec`, which skips hooks.
+- **Cursor**: drop `cursor/mcp.json` and `cursor/hooks.json` into `~/.cursor/`, and
+  `cursor/rules/craftspace.mdc` into `~/.cursor/rules/` (or the project's `.cursor/rules/`) for the
+  native always-on skills pointer, which does not depend on the unverified hook. Hooks unverified;
+  the rules file and MCP are standard Cursor config.
 - **Claude.ai / Desktop**: add the custom connector; there is no client hook surface, so write-back
   rides the server nudge alone.
 
