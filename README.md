@@ -16,13 +16,37 @@ without ever recording it. Two shared hooks fix that:
 
 ## Claude Code
 
+Install once, and it keeps itself up to date. Two one-time steps:
+
+**1. Register the marketplace with auto-update on.** Add this to your `~/.claude/settings.json`
+(create the file if it does not exist, and merge into `extraKnownMarketplaces` if you already have one):
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "craftspace": {
+      "source": { "source": "github", "repo": "abuaboud/craftspace-plugin" },
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+`"autoUpdate": true` is the load-bearing part. Third-party marketplaces default to auto-update **off**,
+so installing without this line leaves you frozen on whatever commit you installed and you never get
+another update. With it, Claude Code pulls the latest commit at startup on its own.
+
+**2. Install the plugin.**
+
 ```bash
-claude plugin marketplace add abuaboud/craftspace-plugin
 claude plugin install craftspace@craftspace
 ```
 
 The `plugin/` here bundles the MCP (OAuth on first connect) plus both hooks. Type `/mcp` and pick
 **craftspace** to sign in right away.
+
+That first-time setup is the only manual step. This plugin tracks its git HEAD (no pinned version),
+so every new commit reaches you at your next Claude Code startup with no further action.
 
 ## Codex
 
@@ -47,6 +71,14 @@ rides the server's own nudge.
 [`setups/run-setup-tests.mjs`](setups/run-setup-tests.mjs) drives each installed CLI (Claude Code,
 Codex) through a decision task and a page task and asserts the record landed. See
 [`setups/README.md`](setups/README.md).
+
+## Releasing
+
+The plugin carries no `version` field, so Claude Code resolves it to the current git commit. Every
+commit pushed to the default branch is immediately live for everyone who installed with
+`autoUpdate: true` — push equals ship, there is no version to bump. Keep the default branch
+always-shippable: do risky work on a branch and merge only when it is safe to distribute. There is no
+per-teammate rollback; the recovery path is a forward-fixing commit.
 
 Nothing here is secret: just the public MCP endpoint and small hook scripts. The source of truth is
 the Craftspace monorepo; this repo is the published mirror.
