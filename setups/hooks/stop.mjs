@@ -6,19 +6,27 @@
 // Claude Code, Codex, and Cursor: all three feed the hook JSON on stdin, and all three treat exit
 // code 2 with a stderr message as "keep going, here is why".
 //
-// Loop-safe: nudges once. `stop_hook_active` is true when this stop was itself triggered by a stop
-// hook — that is the escape hatch. Fail-open: any parse/read error allows the stop, so a hook bug
-// can never trap a session.
+// Loop-safe: nudges ONCE PER SESSION. Two guards. (1) `stop_hook_active` is true when this stop was
+// itself triggered by a stop hook — the immediate escape hatch. (2) A per-session marker file: once
+// we have nudged for a session_id we never nudge it again, so a long session with many user turns is
+// not re-blocked on every turn's stop (stop_hook_active resets after each fresh user message and does
+// not cover that). Fail-open: any parse/read/marker error allows the stop, so a hook bug can never
+// trap a session.
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 // Bare craftspace write-tool names (client prefixes/namespaces stripped before matching).
 const WRITE_TOOLS = new Set([
+  'upsert_decision',
+  'upsert_page',
+  'create_skill',
+  'edit_skill',
+  // legacy names (pre-0.2 craftspace tool set), kept so old transcripts still count
   'create_decision',
   'create_page',
-  'create_skill',
   'edit_page',
-  'edit_skill',
 ])
 
 // File-mutating tools: the "this session did real work" signal. Claude Code names on the left,
@@ -27,6 +35,13 @@ const WORK_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'apply
 
 // The bare tool name from either transcript dialect: strip a Claude Code `mcp__server__` prefix.
 const bareName = (name) => (typeof name === 'string' ? name.split('__').pop() : '')
+
+// Per-session marker path, so we nudge a session only once. Keyed by session_id (Claude Code),
+// falling back to transcript_path (Codex/Cursor) — both are stable for the life of a session.
+function markerPath(input) {
+  const key = String(input.session_id || input.transcript_path || '').replace(/[^a-zA-Z0-9]/g, '_').slice(-120)
+  return join(tmpdir(), `craftspace-stop-nudged-${key}`)
+}
 
 function allow() {
   process.exit(0)
@@ -88,13 +103,24 @@ function main() {
   const substantive = didFileWork || names.length >= 6
   if (!substantive) return allow()
 
+  // Nudge once per session: if we already blocked this session, let subsequent stops through.
+  const marker = markerPath(input)
+  try {
+    if (existsSync(marker)) return allow()
+    writeFileSync(marker, String(names.length))
+  } catch {
+    // Marker unavailable (read-only tmp, etc.) — fall through and still nudge; stop_hook_active
+    // remains as the immediate loop guard.
+  }
+
   return block(
     'Before you finish: this session did real work but recorded nothing to the Craftspace company ' +
       'brain. If a hard-to-reverse decision was made (an architecture bet, a vendor choice, a pricing ' +
-      'or policy call), record it now with the craftspace create_decision tool. If a durable gotcha ' +
-      'or learning emerged, save it with create_page; if a reusable procedure worked, create_skill. ' +
-      'Search first (search_pages) so you extend rather than duplicate. If nothing here is genuinely ' +
-      'worth keeping for the team, say so in one line and stop.',
+      'or policy call), record it now with the craftspace upsert_decision tool. If a durable gotcha ' +
+      'or learning emerged, save it with upsert_page; if a reusable procedure worked, create_skill. ' +
+      'Keep it tight — a few plain sentences, not an essay. Search first (search_pages) so you extend ' +
+      'rather than duplicate. If nothing here is genuinely worth keeping for the team, say so in one ' +
+      'line and stop.',
   )
 }
 

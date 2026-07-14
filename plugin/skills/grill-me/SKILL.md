@@ -48,11 +48,32 @@ to the end. `search_pages` first so you extend an existing page, never duplicate
 Pass the right `spaceId` (default Shared).
 
 - Quick dated note not yet worth its own page → append a line to `MEMORY`.
-- Substantial content for an Area → `edit_page` to extend the Area page, or
-  `create_page` under that space.
+- Substantial content for an Area → `upsert_page` to extend the Area page (pass
+  its id), or create a new child page under that Area.
 - A hard-to-reverse call (pricing, vendor lock-in, architecture bet, policy) →
-  `create_decision`, so the team inherits the why, not just the what.
+  `upsert_decision`, so the team inherits the why, not just the what.
 - A reusable procedure that worked → `create_skill`.
+
+## House voice: write it tight
+
+The brain is skimmed, not read. Every page, decision, and MEMORY line is a few
+tight sentences or a short list, never an essay. If it reads like a blog post or
+a lecture, cut it.
+
+- Lead with the point. The first sentence says the thing, no throat-clearing.
+- Plain words over jargon. Don't name-drop frameworks, papers, or theory to
+  sound rigorous. Say what was decided and why, in the team's own words.
+- One idea per line. Cut clauses the reader can infer.
+- A Decision's four sections are a sentence or two each, not a wall of context.
+
+Yappy (don't): "Our four per-space surfaces map 1:1 onto the CoALA agent-memory
+types, and we weighed three structures — a monolithic glossary, a pure Karpathy
+LLM Wiki of many small kebab pages, and a hybrid spine — before landing on the
+last as the best tradeoff of legibility against sprawl."
+
+Tight (do): "The Wiki had no shape. We compared one big glossary page, many tiny
+pages, and a hybrid. The hybrid keeps the glossary readable while long terms
+graduate to their own page."
 
 ## 5. Close
 
