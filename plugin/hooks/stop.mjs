@@ -99,9 +99,11 @@ function main() {
   const wroteBack = names.some((n) => WRITE_TOOLS.has(bareName(n)))
   if (wroteBack) return allow()
 
+  // Only nudge when the session actually changed files (shipped something). Tool-call volume alone
+  // (the old `names.length >= 6`) was too noisy — a read-heavy or brain-only session would trip it
+  // and get blocked for "recording nothing" even when nothing hard-to-reverse happened.
   const didFileWork = names.some((n) => WORK_TOOLS.has(n) || WORK_TOOLS.has(bareName(n)))
-  const substantive = didFileWork || names.length >= 6
-  if (!substantive) return allow()
+  if (!didFileWork) return allow()
 
   // Nudge once per session: if we already blocked this session, let subsequent stops through.
   const marker = markerPath(input)
