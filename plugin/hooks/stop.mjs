@@ -18,16 +18,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 // Bare craftspace write-tool names (client prefixes/namespaces stripped before matching).
-const WRITE_TOOLS = new Set([
-  'upsert_decision',
-  'upsert_page',
-  'create_skill',
-  'edit_skill',
-  // legacy names (pre-0.2 craftspace tool set), kept so old transcripts still count
-  'create_decision',
-  'create_page',
-  'edit_page',
-])
+const WRITE_TOOLS = new Set(['upsert_decision', 'upsert_page', 'upsert_skill'])
 
 // File-mutating tools: the "this session did real work" signal. Claude Code names on the left,
 // Codex on the right (apply_patch = its edit tool).
@@ -119,7 +110,7 @@ function main() {
     'Before you finish: this session did real work but recorded nothing to the Craftspace company ' +
       'brain. If a hard-to-reverse decision was made (an architecture bet, a vendor choice, a pricing ' +
       'or policy call), record it now with the craftspace upsert_decision tool. If a durable gotcha ' +
-      'or learning emerged, save it with upsert_page; if a reusable procedure worked, create_skill. ' +
+      'or learning emerged, save it with upsert_page; if a reusable procedure worked, upsert_skill. ' +
       'Keep it tight — a few plain sentences, not an essay. Search first (search_pages) so you extend ' +
       'rather than duplicate. If nothing here is genuinely worth keeping for the team, say so in one ' +
       'line and stop.',

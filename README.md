@@ -10,7 +10,7 @@ without ever recording it. Two shared hooks fix that:
 - **SessionStart** primes the read-first / write-back rules directly into context (not a truncatable
   server string).
 - **Stop** blocks the end of a substantive session that recorded nothing and tells the model to
-  record the decision (`create_decision`), note (`create_page`), or procedure (`create_skill`) — or
+  record the decision (`upsert_decision`), note (`upsert_page`), or procedure (`upsert_skill`) — or
   explicitly decline. Nudges once, fails open, and understands both the Claude Code and Codex
   transcript formats.
 
