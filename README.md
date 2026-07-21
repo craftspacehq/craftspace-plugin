@@ -42,11 +42,26 @@ another update. With it, Claude Code pulls the latest commit at startup on its o
 claude plugin install craftspace@craftspace
 ```
 
-The `plugin/` here bundles the MCP (OAuth on first connect) plus both hooks. Type `/mcp` and pick
-**craftspace** to sign in right away.
+This installs the house rules, the `/grill-me` skill, and both hooks. It carries **no MCP server of
+its own**, on purpose: the plugin is global, so a bundled server could not know which org a given
+repo means, and one shared `/mcp` would resolve to whichever org your stored credential last got
+pinned to — silently cross-writing the moment you belong to more than one org. The org lives in the
+project instead.
 
-That first-time setup is the only manual step. This plugin tracks its git HEAD (no pinned version),
-so every new commit reaches you at your next Claude Code startup with no further action.
+**3. Connect a repo to its brain.** Run this from the repo you want connected (once per repo):
+
+```bash
+claude mcp add --transport http --scope project craftspace-<org-slug> https://craftspace.app/mcp/<org-slug>
+```
+
+`--scope project` writes the server into that repo's `.mcp.json`, and putting `<org-slug>` in both
+the server name and the URL keeps every project pinned to its own org — a second org in another repo
+can't overwrite it. Your slug is the one in the app URL, `/o/<org-slug>`. Your browser opens to sign
+in the first time; after that `/mcp` shows **craftspace-<org-slug>** connected.
+
+Installing the plugin is one time; connecting is once per repo. The plugin tracks its git HEAD (no
+pinned version), so every new commit reaches you at your next Claude Code startup with no further
+action.
 
 ## Codex
 
@@ -63,8 +78,9 @@ GUI-only with no headless CLI, so it isn't covered by the test harness.
 
 ## Claude.ai / Desktop
 
-Add `https://craftspace.app/mcp` as a custom connector. There's no client hook surface, so write-back
-rides the server's own nudge.
+Add `https://craftspace.app/mcp/<org-slug>` as a custom connector (your slug is the one in the app
+URL, `/o/<org-slug>`; a bare `/mcp` is refused for accounts in more than one org). There's no client
+hook surface, so write-back rides the server's own nudge.
 
 ## Testing
 
