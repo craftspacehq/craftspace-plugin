@@ -11,6 +11,13 @@ to pull that part of the business out of their head and into Craftspace. The Are
 small child page. Hard-to-reverse calls go to **Decision records**, repeatable procedures to
 **Skills**. Run it when an Area is thin, or to sharpen one that has drifted.
 
+## Where results land — read this first
+
+Two write paths; the repo decides which:
+
+- **This repo has a local `brain/` folder (Brain as Code).** The repo is the source of truth, so **write markdown files, not MCP tools.** Everywhere below says `upsert_page` / `upsert_decision` / `upsert_skill`; in a `brain/` repo each means "write or edit the file." The Area spine and its graduated leaves are wiki files (`brain/wiki/<slug>.md`); a Decision is `brain/decisions/<slug>.md` with `status: accepted`; a Skill is `brain/skills/<slug>.md` with `name:` + `description:`. Identity is the filename, not an id — to update the spine, edit its file; to graduate a term, add a new wiki file and link to it by relative path instead of `parentId`. No spaceId. Your changes ride a PR, synced into the brain on merge.
+- **No local `brain/` folder.** Write over MCP with the `upsert_*` tools, ids, and `parentId` exactly as written below.
+
 ## Before you start
 
 1. Pick the Area. If the member did not name one, ask which. Areas are the top-level Team pages, so find the right one with `list_pages`.
@@ -106,7 +113,7 @@ plain, no walls of text. A tight glossary the team trusts beats a long one they 
 
 ## Rules
 
-- If the `craftspace` MCP tools are not available, say so and stop.
+- In a `brain/` repo you write files, so MCP is not required. Otherwise, if the `craftspace` MCP tools are not available, say so and stop.
 - Record only what the member actually said. Never invent or infer a fact into the brain, a term, a
   why, or a path.
 - Keep the member's own words for domain terms. That wording *is* the language the team speaks.

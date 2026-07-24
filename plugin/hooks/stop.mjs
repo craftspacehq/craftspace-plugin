@@ -16,6 +16,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 // Bare craftspace write-tool names (client prefixes/namespaces stripped before matching).
 const WRITE_TOOLS = new Set(['upsert_decision', 'upsert_page', 'upsert_skill'])
@@ -23,6 +24,12 @@ const WRITE_TOOLS = new Set(['upsert_decision', 'upsert_page', 'upsert_skill'])
 // File-mutating tools: the "this session did real work" signal. Claude Code names on the left,
 // Codex on the right (apply_patch = its edit tool).
 const WORK_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'apply_patch'])
+
+// Brain as Code write-back: a repo-backed brain keeps its context as markdown under
+// brain/{decisions,skills,wiki}/, so there the agent writes files instead of calling upsert_* — and
+// that IS the write-back. Match a work-tool call whose serialized input touches that path (Claude
+// Code's file_path and Codex's apply_patch body both stringify to contain it).
+const BRAIN_FILE = /brain\/(?:decisions|skills|wiki)\/[^"'\s]*\.md/
 
 // The bare tool name from either transcript dialect: strip a Claude Code `mcp__server__` prefix.
 const bareName = (name) => (typeof name === 'string' ? name.split('__').pop() : '')
@@ -43,11 +50,14 @@ function block(reason) {
   process.exit(2)
 }
 
-// Pull every tool name called in the session out of whichever transcript dialect this is.
-// Claude Code: {message:{role:'assistant',content:[{type:'tool_use',name}]}}.
-// Codex: {type:'response_item',payload:{type:'function_call',name}} (+ custom_tool_call for edits).
-function toolNamesFrom(lines) {
+// One pass over the transcript in whichever dialect it is. Returns the tool names called and whether
+// a work-tool wrote a brain/ file (the Brain-as-Code write-back).
+//   Claude Code: {message:{role:'assistant',content:[{type:'tool_use',name,input}]}}.
+//   Codex: {type:'response_item',payload:{type:'function_call'|'custom_tool_call',name,arguments}}.
+export function scanTranscript(lines) {
   const names = []
+  let wroteBrainFile = false
+  const brainWrite = (name, argsJson) => WORK_TOOLS.has(bareName(name)) && BRAIN_FILE.test(argsJson)
   for (const line of lines) {
     if (!line.trim()) continue
     let entry
@@ -59,15 +69,19 @@ function toolNamesFrom(lines) {
     const msg = entry.message
     if (msg && msg.role === 'assistant' && Array.isArray(msg.content)) {
       for (const block of msg.content) {
-        if (block?.type === 'tool_use' && typeof block.name === 'string') names.push(block.name)
+        if (block?.type === 'tool_use' && typeof block.name === 'string') {
+          names.push(block.name)
+          if (brainWrite(block.name, JSON.stringify(block.input ?? ''))) wroteBrainFile = true
+        }
       }
     }
     const payload = entry.type === 'response_item' ? entry.payload : undefined
-    if (payload && (payload.type === 'function_call' || payload.type === 'custom_tool_call')) {
-      if (typeof payload.name === 'string') names.push(payload.name)
+    if (payload && (payload.type === 'function_call' || payload.type === 'custom_tool_call') && typeof payload.name === 'string') {
+      names.push(payload.name)
+      if (brainWrite(payload.name, JSON.stringify(payload.arguments ?? payload.input ?? ''))) wroteBrainFile = true
     }
   }
-  return names
+  return { names, wroteBrainFile }
 }
 
 function main() {
@@ -80,14 +94,16 @@ function main() {
   if (input.stop_hook_active) return allow()
   if (!input.transcript_path) return allow()
 
-  let names
+  let scan
   try {
-    names = toolNamesFrom(readFileSync(input.transcript_path, 'utf8').split('\n'))
+    scan = scanTranscript(readFileSync(input.transcript_path, 'utf8').split('\n'))
   } catch {
     return allow()
   }
+  const { names, wroteBrainFile } = scan
 
-  const wroteBack = names.some((n) => WRITE_TOOLS.has(bareName(n)))
+  // Write-back landed either way: an MCP upsert (hosted brain) or a file written into brain/ (Brain as Code).
+  const wroteBack = wroteBrainFile || names.some((n) => WRITE_TOOLS.has(bareName(n)))
   if (wroteBack) return allow()
 
   // Only nudge when the session actually changed files (shipped something). Tool-call volume alone
@@ -108,13 +124,14 @@ function main() {
 
   return block(
     'Before you finish: this session did real work but recorded nothing to the Craftspace company ' +
-      'brain. If a hard-to-reverse decision was made (an architecture bet, a vendor choice, a pricing ' +
-      'or policy call), record it now with the craftspace upsert_decision tool. If a durable gotcha ' +
-      'or learning emerged, save it with upsert_page; if a reusable procedure worked, upsert_skill. ' +
-      'Keep it tight — a few plain sentences, not an essay. Search first (search_pages) so you extend ' +
-      'rather than duplicate. If nothing here is genuinely worth keeping for the team, say so in one ' +
-      'line and stop.',
+      'brain. If this repo has a brain/ folder (Brain as Code), record the learning as a markdown file ' +
+      'under brain/decisions/, brain/skills/, or brain/wiki/ (that IS the write-back — it rides your PR). ' +
+      'Otherwise use the craftspace tools: a hard-to-reverse decision -> upsert_decision, a durable ' +
+      'gotcha or learning -> upsert_page, a reusable procedure -> upsert_skill. Keep it tight — a few ' +
+      'plain sentences, not an essay. Search first (grep brain/ or search_pages) so you extend rather ' +
+      'than duplicate. If nothing here is genuinely worth keeping for the team, say so in one line and stop.',
   )
 }
 
-main()
+// Run only when invoked as the hook (node stop.mjs), not when imported by the self-test.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main()
