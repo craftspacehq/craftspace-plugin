@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Self-check for stop.mjs's write-back detection. Run: node plugin/hooks/stop.test.mjs
+// Self-check for stop.mjs's write-back detection. Run: node hooks/stop.test.mjs
 import assert from 'node:assert/strict'
 import { scanTranscript } from './stop.mjs'
 
