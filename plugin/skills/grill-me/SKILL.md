@@ -3,21 +3,40 @@ name: grill-me
 description: Grilling session that reads the connected docs first, challenges a plan against the existing domain model one question at a time, sharpens terminology, and records what lands in the Craftspace brain (Area pages, Decisions, gotchas, Skills). Runs mandatory feature-overlap detection before any new feature. Use when stress-testing a plan, filling a thin Area, defining domain terms, hardening terminology, or proposing a new feature.
 ---
 
-<what-to-do>
+# Grill Me
 
 Interview the member relentlessly about every aspect of this plan or Area until you reach a shared
-understanding. Walk down each branch of the design tree, resolving dependencies between decisions
-one-by-one. For each question, give your recommended answer so they can confirm or correct rather
-than write an essay.
+understanding, and build the brain as you go. Walk down each branch of the design tree, resolving
+dependencies between decisions one-by-one.
 
-Ask the questions one at a time, waiting for the answer before continuing. Never batch.
+This is the *active* discipline. Reading the brain for vocabulary is a habit any skill can have; this
+skill is for when you are changing the model, not just consuming it.
 
-If a question can be answered by reading the codebase, the connected docs, or the brain, do that
-instead of asking.
+## How to ask
 
-</what-to-do>
+**One question per message. Never batch.** Do not reach for a multi-question tool to ask four things
+at once. Batching buys four shallow answers instead of one real one, and it hides the fact that
+question two should have changed based on the answer to question one. Ask, wait, read the answer,
+let it choose the next question.
 
-<supporting-info>
+**Every question carries your recommended answer and the reason for it.** The member should be able
+to reply "yes" or "no, because…" without writing an essay. A bare question with four neutral options
+is you handing back the thinking you were asked to do.
+
+**Ground every question in something you have already read.** Before the first question, read the
+code the plan touches and name it: the file, the function, the constraint. "`loop-executor.ts`
+returns out of the whole loop on any non-RUNNING verdict, so branches cannot pause independently.
+I would give each branch its own run. Agreed?" beats "how should parallelism work?"
+
+**A fact is yours to find; a decision is theirs to make.** If a question can be answered by reading
+the codebase, the connected docs, or the brain, read it instead of asking.
+
+**Never accept a vague answer, and never leave a bad question standing.** If the reply is "I don't
+understand", the question was the problem: make it smaller and more concrete, add a worked example,
+ask again. If the reply is fuzzy ("maybe", "depends"), name the two branches it splits into and ask
+which one.
+
+**Do not act on the plan until the member says you have reached shared understanding.**
 
 ## Where results land — read this first
 
@@ -43,39 +62,9 @@ Two write paths; the repo decides which:
 | A trap that cost someone hours | a page titled `Gotcha: <what bites you>` | `upsert_page` |
 | A reusable procedure | a **Skill** | `upsert_skill` |
 
-## One page per Area
-
-The wiki is flat and one Area owns exactly one page: Title Case, emoji icon, and everything known
-about that Area on it. The page is a **glossary spine** — one line per term — and any term that
-outgrows a line **graduates** to its own small child page.
-
-```
-⚙️ Execution Runtime
-   two sentences: what this Area is
-   **Worker** — definition. _Avoid_: "pool" (transitional bridge, not the deleted pool-server)
-   **Sandbox** — definition → see *sandbox*
-   ## Key Files       packages/server/worker, packages/server/sandbox
-   📁 Decisions: Worker is the Sandbox · Transitional multi-box concurrency · …
-```
-
-- **Search before you write.** `search_pages` (or grep `brain/`) for the Area, then edit the page that
-  exists. Creating a second page for an Area that already has one is the failure this structure exists
-  to prevent (`Flows` vs `Flows & Execution` vs `Flows (User Guide)` was the old state).
-- **Glossary discipline.** Be opinionated: one canonical word per concept, every retired alias on an
-  `_Avoid_` line. One or two sentences per term — define what it IS, not what it does. Only terms
-  specific to this company; general programming and business words don't belong.
-- **Don't mirror the public docs.** User-facing behaviour lives in the docs site. Link to it; never
-  restate it. The brain covers what is *not* public: internal architecture, decisions, gotchas,
-  domain language.
-
-A graduated leaf holds one idea and links out instead of restating the why or the how:
-
-```
-# Onboarding
-How a new customer goes from signed to live: the steps, who owns each, the usual snags.
-Why we gate on a kickoff call: decision → *kickoff-gate*
-How to run the kickoff: skill → *run-a-kickoff*
-```
+Page and glossary shape is in [PAGE-FORMAT.md](./PAGE-FORMAT.md). Decision shape and the bar for
+offering one is in [DECISION-FORMAT.md](./DECISION-FORMAT.md). Create nothing eagerly — a page, a
+leaf, a Decision each appear only when there is something real to write on them.
 
 ## Before grilling a NEW feature: overlap detection (mandatory)
 
@@ -142,6 +131,27 @@ about the boundaries between concepts.
 When the member states how something works, check whether the code agrees and surface contradictions.
 Keep multi-tenancy and editions in view where they apply.
 
+### Grill the implementation, not just the shape
+
+"Branches run in parallel" is a wish, not a design. Keep descending until each answer names a
+mechanism: which entity gains a column, whose contract changes, what the new failure mode is. The
+questions worth asking are the ones whose answers you could hand to an implementer without them
+coming back.
+
+Reach for these the moment an answer stays abstract:
+
+- **The constraint** — what in the code as it stands makes this hard? Name it, then ask whether it
+  moves or whether the design routes around it.
+- **The unit** — what is the smallest thing that can fail, retry, or resume on its own? If the design
+  needs a smaller one than exists today, that is the whole change.
+- **The blow-up** — at ten and a thousand times the expected volume, what breaks first: memory, log
+  size, queue depth, a third-party rate limit?
+- **The half-state** — one part succeeded, one failed, one is still running. What does the member see
+  in the UI, and what can they do about it?
+- **The upgrade** — an existing customer upgrades into this. Does anything behave differently without
+  them asking for it? If yes, the default is wrong.
+- **The reuse** — what already in this codebase does most of this job, and why is it not enough?
+
 ### Ask where it lives
 
 When a term is backed by code, ask which directories hold it and what the entry point is called. This
@@ -152,54 +162,6 @@ is the one thing a reader cannot derive from the page.
 The moment a fact resolves, write it to the brain right there, not at the end of the session. Route
 every fact to exactly one surface, and never let two surfaces restate the same thing. A dated one-off
 that isn't durable yet goes to **MEMORY**, not the spine.
-
-## Key files
-
-A page backed by code ends in a **Key files** list: where that thing lives, so the next agent reads
-instead of grepping. Everything else says what a thing IS and why. This says where.
-
-```
-# RBAC
-Who may do what inside a project. Roles carry permissions; every request asserts against them.
-Entry point: `rbacService.assertPrincipalAccessToProject()`
-
-## Key files
-- `packages/server/api/src/app/ee/projects/` — role enforcement
-- `packages/web/src/features/members/` — members UI
-```
-
-Three rules, and they all exist because pointers rot:
-
-- **Directories, not files, wherever a directory covers it.** A file gets renamed; a module directory
-  rarely moves. Name a single file only when it genuinely is one file.
-- **Never line numbers.** Any edit above a line invalidates it silently. Paths only.
-- **Name the entry-point symbol** when there is one. It survives a file move and is one deterministic
-  grep away, which no path can promise.
-
-Only add this when the member actually knows the paths. A guessed path is worse than no path: it reads
-as authoritative and sends the next agent to the wrong place.
-
-## Offer Decisions sparingly
-
-Only offer a Decision when all three are true:
-
-1. **Hard to reverse** — the cost of changing your mind later is meaningful
-2. **Surprising without context** — a future reader will wonder "why on earth did they do it this way?"
-3. **The result of a real trade-off** — there were genuine alternatives and you picked one for reasons
-
-If any of the three is missing, skip it. Easy to reverse? You'll just reverse it. Not surprising?
-Nobody will wonder why. No real alternative? There's nothing to record beyond "we did the obvious thing."
-
-What qualifies: architectural shape, integration patterns between subsystems, technology choices
-carrying lock-in, boundary and scope decisions (the explicit no's as much as the yes's), deliberate
-deviations from the obvious path, constraints not visible in the code, and rejected alternatives whose
-rejection is non-obvious.
-
-**Shape.** Title it as the claim itself, so the sidebar reads as a list of positions — `Worker is the
-Sandbox`, `Pieces are distributed as links, resolved lazily`. Body is one to three sentences: what the
-context was, what was decided, why. Add rejected alternatives only when someone would otherwise propose
-them again in six months, and consequences only when a downstream effect is non-obvious. Nest it under
-the Area page it belongs to, and add it to that page's trailing decisions line.
 
 ## Re-running on the same Area
 
@@ -227,5 +189,3 @@ handful of terms and one or two decisions, not an exhaustive dump.
   into the brain.
 - Keep the member's own words for domain terms. That wording *is* the language the team speaks.
 - No em dashes in anything you write into the brain (brand voice).
-
-</supporting-info>
