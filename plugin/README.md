@@ -42,7 +42,7 @@ folder?**
 
 - **Yes (Brain as Code).** Read by grepping `brain/` on disk (zero setup, current to the working
   tree). Write by **editing a markdown file** — a Decision in `brain/decisions/<slug>.md`, a Skill in
-  `brain/skills/<slug>.md`, a Page or MEMORY in `brain/wiki/<slug>.md`. The agent never calls the MCP
+  `.agents/skills/<name>/SKILL.md`, a Page or MEMORY in `brain/<slug>.md`. The agent never calls the MCP
   `upsert_*` tools here: a file change rides the normal PR and review, which is the quality filter,
   whereas an MCP write would push straight to `main` and skip it. On merge, the Craftspace bot syncs
   the changed files into the hosted brain. No MCP write access is needed in the repo at all.

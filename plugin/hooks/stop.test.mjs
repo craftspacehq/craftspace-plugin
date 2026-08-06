@@ -8,8 +8,8 @@ const codex = (name, args) => JSON.stringify({ type: 'response_item', payload: {
 
 // A file written into brain/ counts as Brain-as-Code write-back...
 assert.equal(scanTranscript([claude('Write', { file_path: '/repo/brain/decisions/foo.md', content: 'x' })]).wroteBrainFile, true)
-assert.equal(scanTranscript([claude('Edit', { file_path: 'brain/wiki/memory.md' })]).wroteBrainFile, true)
-assert.equal(scanTranscript([codex('apply_patch', '*** Add File: brain/skills/run-a-thing.md')]).wroteBrainFile, true)
+assert.equal(scanTranscript([claude('Edit', { file_path: 'brain/memory.md' })]).wroteBrainFile, true)
+assert.equal(scanTranscript([codex('apply_patch', '*** Add File: .agents/skills/run-a-thing/SKILL.md')]).wroteBrainFile, true)
 
 // ...but a write elsewhere, or a mere READ of a brain file, does not.
 assert.equal(scanTranscript([claude('Write', { file_path: '/repo/src/x.ts' })]).wroteBrainFile, false)

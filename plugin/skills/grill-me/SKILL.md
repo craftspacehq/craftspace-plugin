@@ -45,9 +45,9 @@ Two write paths; the repo decides which:
 - **This repo has a local `brain/` folder (Brain as Code).** The repo is the source of truth, so
   **write markdown files, not MCP tools.** Everywhere below says `upsert_page` / `upsert_decision` /
   `upsert_skill`; in a `brain/` repo each means "write or edit the file." Area pages and their
-  graduated leaves are `brain/wiki/<slug>.md`, a Decision is `brain/decisions/<slug>.md` with
-  `status: accepted`, a Skill is `brain/skills/<slug>.md` with `name:` + `description:`. Identity is
-  the filename, not an id — to update a page, edit its file; to graduate a term, add a new wiki file
+  graduated leaves are `brain/<slug>.md`, a Decision is `brain/decisions/<slug>.md` with
+  `status: accepted`, a Skill is `.agents/skills/<name>/SKILL.md` with `name:` + `description:`. Identity is
+  the filename, not an id — to update a page, edit its file; to graduate a term, add a new file under `brain/`
   and link it by relative path instead of `parentId`. No spaceId. Your changes ride a PR.
 - **No local `brain/` folder.** Write over MCP with the `upsert_*` tools, ids, and `parentId` exactly
   as written below. If the `craftspace` MCP tools are unavailable, **stop and say so**. Do not fall

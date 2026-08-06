@@ -27,7 +27,9 @@ const WORK_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit', 'apply
 // write-back. Match a work-tool call whose serialized input touches that path (Claude Code's file_path,
 // Codex's apply_patch body both stringify to contain it). ponytail: fixed `brain/` base (what the connect
 // UI writes); widen only if a custom base path ever ships.
-const BRAIN_FILE = /brain\/(?:decisions|skills|wiki)\/[^"'\s]*\.md/
+// Anything under brain/, plus a skill in its tool-neutral home. brain/ is the whole tree now, so the old
+// {decisions,skills,wiki} allowlist would miss every ordinary page written at the top of it.
+const BRAIN_FILE = /(?:brain|\.agents\/skills|\.claude\/skills)\/[^"'\s]*\.md/
 
 // The bare tool name from either transcript dialect: strip a Claude Code `mcp__server__` prefix.
 const bareName = (name) => (typeof name === 'string' ? name.split('__').pop() : '')
@@ -104,7 +106,7 @@ function main() {
   return block(
     'Before you finish: this session did real work but recorded nothing to the Craftspace company ' +
       'brain. If this repo has a brain/ folder (Brain as Code), record the learning as a markdown file ' +
-      'under brain/decisions/, brain/skills/, or brain/wiki/ (that IS the write-back — it rides your PR). ' +
+      'under brain/decisions/, .agents/skills/, or anywhere in brain/ (that IS the write-back — it rides your PR). ' +
       'Otherwise use the craftspace tools: a hard-to-reverse decision -> upsert_decision, a durable gotcha ' +
       'or learning -> upsert_page, a reusable procedure -> upsert_skill. Search first (grep brain/ or ' +
       'search_pages) so you extend rather than duplicate. If nothing here is genuinely worth keeping for ' +
