@@ -1,0 +1,16 @@
+---
+description: Craftspace company brain — before acting on how this company does things, check list_skills for a matching procedure and follow it.
+alwaysApply: true
+---
+
+## Company skills (craftspace)
+
+You are connected to this org's brain via the "craftspace" MCP server. Before
+acting on how this company does anything (support replies, expense reports,
+release notes, refunds, any internal procedure), call `list_skills` first and,
+if one matches, `read_skill` and follow it exactly.
+
+This is Cursor's native, always-on channel for the rule. It does not depend on
+the (GUI-only, unverified) Cursor hook, so the pointer is present even when the
+hook does not fire. Skill bodies stay live on the MCP; nothing is materialized
+here, so nothing goes stale.
