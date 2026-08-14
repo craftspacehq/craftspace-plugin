@@ -1,6 +1,6 @@
 {
   "name": "craftspace",
-  "description": "Connects Claude Code to your team's Craftspace company brain and makes sure decisions and learnings actually get written back — a SessionStart hook primes the read-first / write-back rules, a Stop hook nudges you to record a decision or page before a substantive session ends, and the /grill-me skill interviews you to fill a thin Area of the brain.",
+  "description": "Connects Claude Code to your team's hosted Craftspace company brain through a local MCP bridge, supports complete plugin folders, and nudges substantive sessions to write decisions and learnings back.",
   "homepage": "https://craftspace.app",
   "author": { "name": "Craftspace", "url": "https://craftspace.app" }
 }

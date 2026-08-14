@@ -2,12 +2,13 @@
 
 Install Craftspace, your team's **company brain**, into the coding agent you already use.
 
-Setup is two steps, and both are quick:
+Setup is three steps, and each is quick:
 
 1. **Install the plugin.** It ships the house rules and the shared skills, so your agent knows to read context before acting and write learnings back.
-2. **Add a project `.mcp.json` naming your org.** That is what actually connects the brain. See [Pick your org](#pick-your-org-mcporg-slug) below for the URL.
+2. **Add `.craftspace.json` to the project.** That pins the bundled local bridge to the right org.
+3. **Create a local token in Craftspace.** Start Claude with it once, then the bridge keeps it in Claude's private plugin data.
 
-The plugin deliberately ships **no MCP server of its own**. It installs globally, so it cannot know which org a given repo means, and a bundled org-less server would just resolve to whichever org your stored credential got pinned to. The org belongs in the project config, next to the code that means it.
+The local bridge forwards company-brain calls to hosted Craftspace and handles complete plugin-folder workflows inside the project. It advertises no tools until the project adds an explicit org slug, so a global plugin install cannot guess an org or write to the wrong one.
 
 What each manifest carries:
 
@@ -15,9 +16,9 @@ What each manifest carries:
 - **[Cursor](#cursor)**: `.cursor-plugin/` manifest + an **always-apply rule** carrying the house rules.
 - **[Codex](#codex)**: `.codex-plugin/` manifest + the shared skills. Codex honors the MCP server's `instructions`, so the rules arrive from the endpoint once you connect it.
 
-The endpoint is hosted and OAuth-protected (streamable HTTP). There is no token in any config file: the first connection runs the standard MCP OAuth flow (DCR + PKCE) in your browser, and the endpoint resolves your Member from that credential.
+Codex, Cursor, Claude.ai, and other clients use the hosted OAuth-protected endpoint directly. Claude Code reaches the same endpoint through its local bridge with a revocable member token stored outside the project.
 
-### Pick your org: `/mcp/<org-slug>`
+### Pick your org for hosted clients: `/mcp/<org-slug>`
 
 Bare `/mcp` reads the org off your credential, which is whichever org was active when you consented. That is fine with one org and wrong the moment you have two: every project shares one stored credential, so every project writes into that same org.
 
@@ -69,6 +70,9 @@ agent-plugin/
 │   ├── grill-me/SKILL.md
 │   └── seed/SKILL.md
 ├── .claude-plugin/plugin.json     # Claude Code manifest
+├── .mcp.json                      # local bridge, active once the repo is configured
+├── bin/
+│   └── craftspace-mcp.mjs         # hosted proxy + rooted plugin-folder I/O
 ├── hooks/
 │   ├── hooks.json                 # SessionStart + Stop hook wiring
 │   ├── session-start.sh           # echoes HOUSE_RULES.md into the session
@@ -82,9 +86,9 @@ agent-plugin/
 └── README.md
 ```
 
-No MCP config file lives in here on purpose. Every client auto-discovers an `.mcp.json`
-at the plugin root, so shipping one would hand every repo on the machine the same org.
-The MCP server is yours to declare per project.
+The bundled `.mcp.json` starts the local bridge under Claude Code. Without a project
+`.craftspace.json`, it initializes with no tools and explains how to configure it. This prevents a
+global plugin install from choosing the wrong org.
 
 `grill-me` and `seed` are copies of the endpoint's built-in skills, so the plugin ships them for
 discovery — and, in Claude Code, as slash commands (`/seed`) — even before the agent lists skills
@@ -96,11 +100,11 @@ the record shape now, and the stale copy kept telling agents to call `create_pag
 
 ## Claude Code
 
-Marketplace install (this public repo is the marketplace):
+Marketplace install from the public repository:
 
 ```sh
-/plugin marketplace add abuaboud/craftspace-agent-plugin
-/plugin install craftspace
+claude plugin marketplace add craftspacehq/craftspace-plugin
+claude plugin install craftspace@craftspace
 ```
 
 On session start the plugin's **SessionStart hook** prints the house rules so the agent
@@ -108,17 +112,27 @@ consults the brain proactively, and its **Stop hook** blocks the first stop of a
 did real work but recorded nothing, telling the agent to `upsert_decision` / `upsert_page` /
 `upsert_skill` now or say why not. It nudges once and fails open.
 
-Then connect the brain in the project you want it in. Drop a `.mcp.json` at the repo root
-with your org slug (see [Pick your org](#pick-your-org-mcporg-slug)), or run:
+Add `.craftspace.json` at the project root with the org slug from the app URL, `/o/<org-slug>`:
 
-```sh
-claude mcp add --transport http --scope project craftspace-<org-slug> https://craftspace.app/mcp/<org-slug>
+```json
+{ "org": "<org-slug>" }
 ```
 
-`--scope project` writes the server to the repo's `.mcp.json`, so each project stays pinned to the
-org its URL names, and the `craftspace-<org-slug>` name keeps a second org's entry from clobbering the
-first (drop the flag for a user-config connection instead). Either way the first connection prompts for
-OAuth in your browser.
+If the repo already has a hosted `craftspace-<org-slug>` entry in `.mcp.json`, remove it so only one
+Craftspace server exposes the tools. Then open Craftspace's Claude Code setup, create a local access
+token, and start Claude once with it in memory:
+
+```bash
+read -s CRAFTSPACE_TOKEN
+export CRAFTSPACE_TOKEN
+claude
+unset CRAFTSPACE_TOKEN
+```
+
+The bridge saves the token with mode `0600` in `${CLAUDE_PLUGIN_DATA}`, never in the repo. It resolves
+every `directory` below `${CLAUDE_PROJECT_DIR}`, rejects traversal and symlinks, and refuses to replace a
+non-empty destination. All authoritative reads, writes, permissions, and plugin state still live in the
+hosted Craftspace service.
 
 ## Cursor
 
@@ -127,7 +141,7 @@ listed. Cursor is not documented to honor an MCP server's `instructions`, so the
 ship as an `alwaysApply` rule in `.cursor-plugin/rules/craftspace.mdc`.
 
 Then connect the brain per project: paste into `.cursor/mcp.json` in the repo, swapping in
-your slug (see [Pick your org](#pick-your-org-mcporg-slug)):
+your slug (see [Pick your org for hosted clients](#pick-your-org-for-hosted-clients-mcporg-slug)):
 
 ```json
 { "mcpServers": { "craftspace-acme": { "url": "https://craftspace.app/mcp/acme" } } }
@@ -155,7 +169,7 @@ in more than one org.
 Marketplace install:
 
 ```sh
-codex plugin marketplace add abuaboud/craftspace-agent-plugin
+codex plugin marketplace add craftspacehq/craftspace-plugin
 codex plugin install craftspace
 ```
 
@@ -164,7 +178,7 @@ the core rule (read context first) into the **first 512 characters** of those in
 so no separate rules file is needed on the Codex side. That only kicks in once the server is
 connected.
 
-Connect it in `~/.codex/config.toml`, naming your org (see [Pick your org](#pick-your-org-mcporg-slug)):
+Connect it in `~/.codex/config.toml`, naming your org (see [Pick your org for hosted clients](#pick-your-org-for-hosted-clients-mcporg-slug)):
 
 ```toml
 [mcp_servers.craftspace-<org-slug>]
@@ -179,9 +193,9 @@ tell them apart.
 ## This is a public repo
 
 Cursor's plugin marketplace requires the plugin repo be **open source**, so this bundle is
-meant to live in its own public repo (`abuaboud/craftspace-agent-plugin`), split from the
-product. It contains no secrets, just config, markdown, and one shell hook. The MCP endpoint
-holds the auth and the org's real context.
+published from its own public repo (`craftspacehq/craftspace-plugin`), split from the
+product. It contains no secrets, only public plugin code, config, and markdown. The hosted service
+holds permissions and the org's real context.
 
 ## Follow-up: agent-setup screen wiring (deferred)
 

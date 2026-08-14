@@ -1,8 +1,8 @@
 # Craftspace agent setups
 
-Connects your coding agents to your team's [Craftspace](https://craftspace.app) company brain (shared
-Pages, Skills, and Decisions over MCP) and makes sure decisions and learnings actually get written
-back.
+Connects your coding agents to your team's [Craftspace](https://craftspace.app) company brain and makes
+sure decisions and learnings get written back. Claude Code uses a local MCP bridge, so it can work with
+complete plugin folders while the company brain stays hosted and shared.
 
 A bare MCP connection is advisory: agents routinely finish a session having made a real decision
 without ever recording it. Two shared hooks fix that:
@@ -16,7 +16,7 @@ without ever recording it. Two shared hooks fix that:
 
 ## Claude Code
 
-Install once, and it keeps itself up to date. Two one-time steps:
+Install once, connect each repo once, and it keeps itself up to date:
 
 **1. Register the marketplace with auto-update on.** Add this to your `~/.claude/settings.json`
 (create the file if it does not exist, and merge into `extraKnownMarketplaces` if you already have one):
@@ -25,7 +25,7 @@ Install once, and it keeps itself up to date. Two one-time steps:
 {
   "extraKnownMarketplaces": {
     "craftspace": {
-      "source": { "source": "github", "repo": "abuaboud/craftspace-plugin" },
+      "source": { "source": "github", "repo": "craftspacehq/craftspace-plugin" },
       "autoUpdate": true
     }
   }
@@ -42,26 +42,36 @@ another update. With it, Claude Code pulls the latest commit at startup on its o
 claude plugin install craftspace@craftspace
 ```
 
-This installs the house rules, the `/grill-me` skill, and both hooks. It carries **no MCP server of
-its own**, on purpose: the plugin is global, so a bundled server could not know which org a given
-repo means, and one shared `/mcp` would resolve to whichever org your stored credential last got
-pinned to — silently cross-writing the moment you belong to more than one org. The org lives in the
-project instead.
+This installs the house rules, the `/grill-me` skill, both hooks, and the local MCP bridge. The bridge
+advertises no tools until a repo pins its org in `.craftspace.json`, so it cannot guess an org or quietly
+write to the wrong one.
 
-**3. Connect a repo to its brain.** Run this from the repo you want connected (once per repo):
+**3. Pin the repo to its company brain.** Add `.craftspace.json` at the repo root:
 
-```bash
-claude mcp add --transport http --scope project craftspace-<org-slug> https://craftspace.app/mcp/<org-slug>
+```json
+{ "org": "<org-slug>" }
 ```
 
-`--scope project` writes the server into that repo's `.mcp.json`, and putting `<org-slug>` in both
-the server name and the URL keeps every project pinned to its own org — a second org in another repo
-can't overwrite it. Your slug is the one in the app URL, `/o/<org-slug>`. Your browser opens to sign
-in the first time; after that `/mcp` shows **craftspace-<org-slug>** connected.
+Your slug is the one in the app URL, `/o/<org-slug>`. If this repo already has a hosted
+`craftspace-<org-slug>` server in `.mcp.json`, remove it. Hosted and local expose the same tools, so
+Claude Code should see only the bundled local server.
 
-Installing the plugin is one time; connecting is once per repo. The plugin tracks its git HEAD (no
-pinned version), so every new commit reaches you at your next Claude Code startup with no further
-action.
+**4. Give this machine access.** In Craftspace, open **Connect your agent**, choose **Claude Code**,
+and create a local access token. Then start Claude once with the token in memory:
+
+```bash
+read -s CRAFTSPACE_TOKEN
+export CRAFTSPACE_TOKEN
+claude
+unset CRAFTSPACE_TOKEN
+```
+
+The bridge stores the token with mode `0600` under Claude's plugin data directory, outside the repo.
+Future launches use plain `claude`. The hosted service remains authoritative for permissions, plugin
+state, pages, and connected apps. The local process only forwards calls and performs rooted folder I/O.
+
+Installing the plugin is one time; connecting is once per repo. The plugin tracks its git HEAD with no
+pinned version, so every new commit reaches you at your next Claude Code startup with no further action.
 
 ## Codex
 
@@ -96,5 +106,5 @@ commit pushed to the default branch is immediately live for everyone who install
 always-shippable: do risky work on a branch and merge only when it is safe to distribute. There is no
 per-teammate rollback; the recovery path is a forward-fixing commit.
 
-Nothing here is secret: just the public MCP endpoint and small hook scripts. The source of truth is
-the Craftspace monorepo; this repo is the published mirror.
+This repository is the source of truth for the installed client plugin. The hosted plugin package
+service lives in the Craftspace product repository.

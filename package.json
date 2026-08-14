@@ -1,0 +1,8 @@
+{
+  "name": "craftspace-plugin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node plugin/hooks/stop.test.mjs && node --test plugin/bin/craftspace-mcp.test.mjs"
+  }
+}

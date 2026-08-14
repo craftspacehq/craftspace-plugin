@@ -1,12 +1,12 @@
 {
   "name": "craftspace",
-  "description": "The official Craftspace plugin for Claude Code: your team's company brain over MCP, with hooks that make agents actually record decisions and learnings.",
+  "description": "The official Craftspace plugin for Claude Code: a local MCP bridge to your hosted company brain, with reliable write-back hooks.",
   "owner": { "name": "Craftspace", "url": "https://craftspace.app" },
   "plugins": [
     {
       "name": "craftspace",
       "source": "./plugin",
-      "description": "Connect Claude Code to your Craftspace company brain, with hooks that make decisions and learnings actually get recorded."
+      "description": "Connect Claude Code to your hosted Craftspace company brain through a local MCP bridge, with complete plugin-folder workflows and reliable write-back hooks."
     }
   ]
 }

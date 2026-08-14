@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "craftspace-local": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/bin/craftspace-mcp.mjs",
+        "--root",
+        "${CLAUDE_PROJECT_DIR}"
+      ],
+      "env": {
+        "CRAFTSPACE_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}"
+      }
+    }
+  }
+}
